@@ -41,6 +41,7 @@ from pipecat.processors.frameworks.rtvi import (
 )
 from pipecat.runner.types import SmallWebRTCRunnerArguments
 from pipecat.services.openai.llm import OpenAILLMService
+from pipecat.services.azure.llm import AzureLLMService
 from pipecat.transports.base_transport import TransportParams
 from pipecat.transports.smallwebrtc.connection import SmallWebRTCConnection
 from pipecat.transports.smallwebrtc.transport import SmallWebRTCTransport
@@ -62,6 +63,28 @@ pcs_map: Dict[str, Any] = {}
 
 
 # ============= STT/TTS Service Factories =============
+
+
+def create_llm_service():
+    """Create LLM service based on LLM_PROVIDER env var. Default: openai."""
+    provider = os.getenv("LLM_PROVIDER", "openai").lower()
+
+    if provider == "azure":
+        return AzureLLMService(
+            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+            endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+            model=os.getenv("AZURE_OPENAI_MODEL", "gpt-4o-mini"),
+            api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-01-preview"),
+        )
+
+    elif provider == "openai":
+        return OpenAILLMService(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+        )
+
+    else:
+        raise ValueError(f"Unsupported LLM provider: {provider}. Supported: openai, azure")
 
 
 def create_stt_service():
@@ -443,11 +466,8 @@ async def run_bot(runner_args: SmallWebRTCRunnerArguments):
     stt = create_stt_service()
     tts = create_tts_service()
 
-    # OpenAI LLM
-    llm = OpenAILLMService(
-        api_key=os.getenv("OPENAI_API_KEY"),
-        model="gpt-4o-mini",
-    )
+    # LLM (configurable via LLM_PROVIDER env var, default: openai)
+    llm = create_llm_service()
 
     context = LLMContext()
     context_aggregator = LLMContextAggregatorPair(context)
