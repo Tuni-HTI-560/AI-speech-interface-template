@@ -55,8 +55,8 @@ from pipecat_flows import (
     NodeConfig,
 )
 
-# Load environment variables
-load_dotenv(override=True)
+# Load environment variables from .env next to this script (not cwd)
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"), override=True)
 
 # Store active peer connections
 pcs_map: Dict[str, Any] = {}
