@@ -107,3 +107,14 @@ Open `http://localhost:5173` in your browser.
 - [Example apps](https://github.com/pipecat-ai/pipecat-examples) — `simple-chatbot` and `push-to-talk` have React frontends
 - [Quickstart client-server](https://github.com/pipecat-ai/pipecat-quickstart-client-server) — minimal React + Pipecat setup
 - [AWS blog: voice agents with Pipecat](https://aws.amazon.com/blogs/machine-learning/building-intelligent-ai-voice-agents-with-pipecat-and-amazon-bedrock-part-1/) — detailed third-party walkthrough
+
+## Known RTVI glitch: ServerMessage event with SmallWebRTCTransport
+
+```mermaid
+graph LR
+    A["Backend\nRTVIServerMessageFrame"] -->|WebRTC data channel| B["SmallWebRTCTransport"]
+    B -->|"✅ works"| C["onServerMessage\n(constructor callback)"]
+    B -->|"❌ broken"| D["RTVIEvent.ServerMessage\n(event listener)"]
+```
+
+`client.on(RTVIEvent.ServerMessage, handler)` **never fires** with SmallWebRTCTransport. The message arrives on the data channel but the event dispatch path is broken for this specific event type. This project uses the `onServerMessage` callback in the `PipecatClient` constructor options instead, which bypasses the event emitter and gets called directly by the transport layer.
